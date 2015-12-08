@@ -21,7 +21,7 @@ main:		li $v0, 4
 
 			li $v0, 5
 			syscall
-			move $a1, $v0  		# a0 = board size, will be used for printing
+			move $a1, $v0  		# a1 = board size, will be used for printing
 
 
 			jal setupboard
@@ -72,7 +72,10 @@ TicTacToeGameLoop:
 			jal getUserInput 			# Get user input for row/col
 			jal printBoard
 			jal printBotRow
-			jal ComputerAiWinMoveCheck  # Check to see if computer has winning move
+			jal ComputerAiWinMoveCheckRow  # Check to see if computer has winning move row
+			jal ComputerAiWinMoveCheckCol  # Check to see if computer has winning move col
+			jal ComputerAiWinMoveCheckLeftDiag # Check to see if right diag win
+			jal ComputerAiWinMoveCheckRightDiag # Check to see if left diag win
 
 			j TicTacToeGameLoop
 
@@ -91,7 +94,7 @@ TicTacToeGameLoop:
 # s3 = loading words
 # s4 = n - 1, amount of O's needed for win row
 #--------------------------------------------------------------------------
-ComputerAiWinMoveCheck:
+ComputerAiWinMoveCheckRow:
 
 ComputerAiRowCheck:
 				li 	$t0, 1 			# t0 = 1 or "O"
@@ -106,7 +109,7 @@ ComputerAiRowCheck:
 				addi $s4, $a1, -1 	# s4 = n - 1
 
 ComputerAiRowCheckOuterLoop:
-				beq $s1, $a1, ComputerAiColCheck
+				beq $s1, $a1, loopreturn
 ComputerAiRowCheckInnerLoop:
 				beq $s2, $a1, CheckAiRowWin 	# if s2/j = n, check if it's possible to win
 				lw 	$s3, 0($s0) 	# s3 = first element of the row/cycle through
@@ -131,7 +134,7 @@ updateXCounter:
 				j ComputerAiRowCheckInnerLoop
 
 #------------------------------------------------------------------------
-# Functions to perform winning move on Column for Computer Ai
+# Functions to perform winning move on Row for Computer Ai
 #------------------------------------------------------------------------
 CheckAiRowWin:
 				bgt $t4, $0, UpdateComputerAiRowCheckOuterLoop 		# If x counter > 0, not a win on that row
@@ -168,8 +171,265 @@ UpdateComputerAiRowCheckOuterLoop:
 				j ComputerAiRowCheckOuterLoop
 
 
-ComputerAiColCheck:
+loopreturn:
 				jr 	$ra
+
+#------------------------------------------------------------------------
+# Function to check if Ai has winning Column
+# Registers used
+# t0 = O
+# t1 = X
+# t2 = 4 for mult by 4 for moving around memory
+# t3 = counter for O's
+# t4 = counter for X's
+# t5 = Board for Ai win
+# s0 = Board for moving through Loop checking for win rows
+# s1 = outer loop i
+# s2 = inner loop j 
+# s3 = loading words
+# s4 = n - 1, amount of O's needed for win row
+# s7 = variable offset for i'th row in winning loop 
+#------------------------------------------------------------------------
+ComputerAiWinMoveCheckCol:
+
+ComputerAiColCheck:
+				li 	$t0, 1 			# t0 = 1 or "O"
+				li 	$t1, 2  		# t1 = 2 or "X"
+				li 	$t2, 4 			# t2 = 4 for multiply
+				li 	$t3, 0 			# t3 = counter of O's
+				li 	$t4, 0			# t4 = counter of X's
+				la 	$s0, BOARD 		# s0 = Board for main loop through each row
+				li 	$s1, 0 			# s1 = Outer loop i for for-loop
+				li 	$s2, 0 			# s2 = Inner loop j for for-loop
+				li 	$s4, 0
+				addi $s4, $a1, -1 	# s4 = n - 1
+
+ComputerAiColCheckOuterLoop:
+				beq $s1, $a1, loopreturn
+ComputerAiColCheckInnerLoop:
+				beq $s2, $a1, CheckAiColWin 	# if s2/j = n, check if it's possible to win
+				lw 	$s3, 0($s0) 	# s3 = first element of the col/cycle through
+				beq $s3, $t0, updateOcounterCol
+				beq $s3, $t1, updateXCounterCol
+
+				li 	$t5, 0			# t5 = 0 for offset for column
+				move $t5, $a1 		# t5 = n columns
+				mul $t5, $t5, $t2 	# t5 = 4 * n to get to next column 
+				add $s0, $s0, $t5 	# If spot is space, update to next spot
+
+				addi $s2, 1 		# update j 
+				j ComputerAiColCheckInnerLoop
+
+
+updateOcounterCol:
+				addi $t3, 1 		# update O counter 
+				li 	 $t5, 0			# t5 = 0 for offset for column
+				move $t5, $a1 	    # t5 = n Columns
+				mul $t5, $t5, $t2 	# t5 = 4 * n to get to next column 
+				add $s0, $s0, $t5 	# If spot is space, update to next spot
+		
+				addi $s2, 1 		# update j 
+				j ComputerAiColCheckInnerLoop
+
+updateXCounterCol: 
+				addi $t4, 1 		# update X counter
+				li 	 $t5, 0			# t5 = 0 for offset for column
+				move $t5, $a1 		# t5 = n Colum
+				mul $t5, $t5, $t2 	# t5 = 4 * n to get to next column 
+				add $s0, $s0, $t5 	# If spot is space, update to next spot
+			
+				addi $s2, 1 		# update j 
+				j ComputerAiColCheckInnerLoop
+
+#------------------------------------------------------------------------
+# Functions to perform winning move on Column for Computer Ai
+#------------------------------------------------------------------------
+CheckAiColWin:
+				bgt $t4, $0, UpdateComputerAiColCheckOuterLoop 		# If x counter > 0, not a win on that row
+				bne $t3, $s4, UpdateComputerAiColCheckOuterLoop 	# if O counter != n - 1 then not a win
+
+ComputerAiWinMoveCol:
+				la 	$t5, BOARD 		# load board to t5
+				li 	$t3, 0 			# reset t3 to 0 for computation of offset position
+
+				mul $s1, $s1, $t2 	# s1 = i * 4 for memory of first column win memory location
+
+				add $t5, $t5, $s1 	# t5 = first element of winning col
+				
+ComputerAiWinLoopCol:
+				lw 	$t3, 0($t5)
+				bne $t3, $0, updateAiWinLoopCol
+
+				sw 	$t0, 0($t5)
+
+				j DisplayComputerWin
+
+
+updateAiWinLoopCol:
+				li 	$t6, 0 			# t6 = offset to next column member
+				mul $t6, $a1, $t2 	# t6 = Column * 4
+				add $t5, $t5, $t6 	# t5 = offset by t6 to next column member
+				j ComputerAiWinLoopCol
+
+UpdateComputerAiColCheckOuterLoop:
+				li 	$t3, 0 			# Counter for O reset
+				li 	$t4, 0  		# Counter for X reset
+				addi $s1, 1 		# Update i by 1
+				li 	$s2, 0 			# reset j (inner loop) to 0
+
+				la 	$s0, BOARD 		# reset board to first object
+				li 	$s7, 0 			# s7 = variable offset
+				mul $s7, $s1, $t2 	# s7 = i'th row * 4
+
+				add $s0, $s0, $s7 	# Set s0 to point to first object in column
+
+				j ComputerAiColCheckOuterLoop
+#------------------------------------------------------------------------
+# Functions to check if Computer Ai has winning Left Diag Move
+# t0 = O
+# t1 = X
+# t2 = 4 for mult by 4 for moving around memory
+# t3 = counter for O's
+# t4 = counter for X's
+# t5 = Board for Ai win
+# s0 = Board for moving through Loop checking for win rows
+# s3 = offset to next diag int
+# s4 = n - 1
+#------------------------------------------------------------------------
+
+ComputerAiWinMoveCheckLeftDiag:
+
+ComputerAiDiagLeftCheck:
+				li 	$t0, 1 			# t0 = 1 or "O"
+				li 	$t1, 2  		# t1 = 2 or "X"
+				li 	$t2, 4 			# t2 = 4 for multiply
+				li 	$t3, 0 			# t3 = counter of O's
+				li 	$t4, 0			# t4 = counter of X's
+				la 	$s0, BOARD 		# s0 = Board for main loop through each row
+				li 	$s1, 0 			# s1 = Outer loop i for for-loop
+				li 	$s2, 0 			# s2 = offset to next diagonal int
+				li 	$s4, 0
+				addi $s4, $a1, -1 	# s4 = n - 1
+
+ComputerAiDiagLeftLoop:
+				beq $s1, $a1, CheckAiDiagLeftWin
+				lw 	$s3, 0($s0) 	# s3 = first element of the diag/cycle through
+				beq $s3, $t0, updateOcounterDiagLeft
+				beq $s3, $t1, updateXCounterDiagLeft
+
+				move $s3, $a1 		# s3 = column size
+				addi $s3, 1 		# s3 = column size + 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+
+				add $s0, $s0, $s3 	# s3 offset to next diag int 
+
+				addi $s1, 1 		# Update i for for-loop
+				j ComputerAiDiagLeftLoop
+
+
+updateXCounterDiagLeft:
+				addi $t4, 1 		# update O counter 
+				move $s3, $a1 		# s3 = column size
+				addi $s3, 1 		# s3 = column size + 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+
+				add $s0, $s0, $s3 	# s3 offset to next diag int 
+				addi $s1, 1 		# Update i for for-loop
+
+				j ComputerAiDiagLeftLoop
+updateOcounterDiagLeft:
+				addi $t3, 1 		# update O counter 	
+			 	move $s3, $a1 		# s3 = column size
+				addi $s3, 1 		# s3 = column size + 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+
+				add $s0, $s0, $s3 	# s3 offset to next diag int 
+				addi $s1, 1 		# Update i for for-loop
+
+				j ComputerAiDiagLeftLoop
+
+CheckAiDiagLeftWin:
+				bgt $t4, $0, loopreturn 		# If x counter > 0, not a win on that row
+				bne $t3, $s4, loopreturn		# if O counter != n - 1 then not a win
+
+ComputerAiWinMoveDiagLeft:
+				la 	$t5, BOARD 		# load board to t5
+
+ComputerAiWinMoveDiagLeftLoop:
+				lw 	$t3, 0($t5)  	# Load int in diagonal
+				bne $t3, $0, updateAiWinLoopDiagLeft
+
+				sw 	$t0, 0($t5) 	# Store winning move
+
+				j DisplayComputerWin # Display win
+
+updateAiWinLoopDiagLeft:
+				move $s3, $a1 		# s3 = column size
+				addi $s3, 1 		# s3 = column size + 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+
+				add $t5, $t5, $s3 	# t5 moves memory to next int in diag
+
+				j ComputerAiWinMoveDiagLeftLoop
+
+#------------------------------------------------------------------------
+# Functions to check if Computer Ai has winning Right Diag Move
+#------------------------------------------------------------------------
+
+ComputerAiWinMoveCheckRightDiag:
+
+ComputerAiDiagRightCheck:
+				li 	$t0, 1 			# t0 = 1 or "O"
+				li 	$t1, 2  		# t1 = 2 or "X"
+				li 	$t2, 4 			# t2 = 4 for multiply
+				li 	$t3, 0 			# t3 = counter of O's
+				li 	$t4, 0			# t4 = counter of X's
+				la 	$s0, BOARD 		# s0 = Board for main loop through each row
+				li 	$s1, 0 			# s1 = i for loop
+				li 	$s4, 0
+				addi $s4, $a1, -1 	# s4 = n - 1
+ComputerAiDiagRightLoop:
+				beq $s1, $a1, CheckAiDiagRightWin
+				move $s3, $a1 		# s3 = column size / n
+				addi $s3, -1 		# s3 = column size - 1/n - 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+				add $s0, $s0, $s3 	# s3 offset to next diag int 
+
+				lw 	$s3, 0($s0) 	# s3 = first element of the diag/cycle through
+				beq $s3, $t0, updateOcounterDiagRight
+				beq $s3, $t1, updateXCounterDiagRight
+
+				addi $s1, 1 		# Update i for for-loop
+				j ComputerAiDiagRightLoop
+
+
+updateXCounterDiagRight:
+				addi $t4, 1 		# update O counter 	
+				j ComputerAiDiagRightLoop
+updateOcounterDiagRight:
+				addi $t3, 1 		# update O counter 	
+				j ComputerAiDiagRightLoop
+
+CheckAiDiagRightWin:
+				bgt $t4, $0, loopreturn 		# If x counter > 0, not a win on that row
+				bne $t3, $s4, loopreturn		# if O counter != n - 1 then not a win
+
+ComputerAiWinMoveDiagRight:
+				la 	$t5, BOARD 		# load board to t5
+
+ComputerAiWinMoveDiagRightLoop:
+				move $s3, $a1 		# s3 = column size / n
+				addi $s3, -1 		# s3 = column size - 1/n - 1 for next int for diag
+				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
+				add $t5, $t5, $s3 	# s3 offset to next diag int 
+
+				lw 	$t3, 0($t5)  	# Load int in diagonal
+				bne $t3, $0, ComputerAiWinMoveDiagRightLoop
+
+				sw 	$t0, 0($t5) 	# Store winning move
+
+				j DisplayComputerWin # Display win
+
 #------------------------------------------------------------------------
 # Functions to get user input from the user
 # Registers used $a2, $a3 for row/col
