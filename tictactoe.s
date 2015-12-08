@@ -61,21 +61,19 @@ Computerfirstmove:
 
 			sw 	$t1, 0($t7)
 
-			jal printBoard
-			jal printBotRow
 
 TicTacToeGameLoop: 
 			li $v0, 4
 			la $a0, NEWLINE
 			syscall
-
-			jal getUserInput 			# Get user input for row/col
 			jal printBoard
 			jal printBotRow
+			jal getUserInput 			# Get user input for row/col
 			jal ComputerAiWinMoveCheckRow  # Check to see if computer has winning move row
 			jal ComputerAiWinMoveCheckCol  # Check to see if computer has winning move col
 			jal ComputerAiWinMoveCheckLeftDiag # Check to see if right diag win
 			jal ComputerAiWinMoveCheckRightDiag # Check to see if left diag win
+			jal PlayerWinMoveCheckRow 		# Check to see if Ai needs to block player win move on row
 
 			j TicTacToeGameLoop
 
@@ -429,6 +427,96 @@ ComputerAiWinMoveDiagRightLoop:
 				sw 	$t0, 0($t5) 	# Store winning move
 
 				j DisplayComputerWin # Display win
+#--------------------------------------------------------------------------
+# Function to check if Player has a winning move, block it
+# Registers used
+# t0 = O
+# t1 = X
+# t2 = 4 for mult by 4 for moving around memory
+# t3 = counter for O's
+# t4 = counter for X's
+# t5 = Board for Ai win
+# s0 = Board for moving through Loop checking for win rows
+# s1 = outer loop i
+# s2 = inner loop j 
+# s3 = loading words
+# s4 = n - 1, amount of O's needed for win row
+#--------------------------------------------------------------------------
+PlayerWinMoveCheckRow:
+
+PlayerRowCheck:
+				li 	$t0, 1 			# t0 = 1 or "O"
+				li 	$t1, 2  		# t1 = 2 or "X"
+				li 	$t2, 4 			# t2 = 4 for multiply
+				li 	$t3, 0 			# t3 = counter of O's
+				li 	$t4, 0			# t4 = counter of X's
+				la 	$s0, BOARD 		# s0 = Board for main loop through each row
+				li 	$s1, 0 			# s1 = Outer loop i for for-loop
+				li 	$s2, 0 			# s2 = Inner loop j for for-loop
+				li 	$s4, 0
+				addi $s4, $a1, -1 	# s4 = n - 1
+
+PlayerRowCheckOuterLoop:
+				beq $s1, $a1, loopreturn
+PlayerRowCheckInnerLoop:
+				beq $s2, $a1, CheckPlayerRowWin # if s2/j = n, check if it's possible to win
+				lw 	$s3, 0($s0) 	# s3 = first element of the row/cycle through
+				beq $s3, $t0, updateOcounterPlayer
+				beq $s3, $t1, updateXCounterPlayer
+
+				addi $s0, 4 		# If spot is space, update to next spot
+				addi $s2, 1 		# update j 
+				j PlayerRowCheckInnerLoop
+
+
+updateOcounterPlayer:
+				addi $t3, 1 		# update O counter 
+				addi $s0, 4 		# Update memory to next int
+				addi $s2, 1 		# update j 
+				j PlayerRowCheckInnerLoop
+
+updateXCounterPlayer: 
+				addi $t4, 1 		# update X counter
+				addi $s0, 4 		# update mememory to next int
+				addi $s2, 1 		# update j 
+				j PlayerRowCheckInnerLoop
+
+#------------------------------------------------------------------------
+# Functions to perform winning move on Row for Computer Ai
+#------------------------------------------------------------------------
+CheckPlayerRowWin:
+				bgt $t3, $0, UpdatePlayerRowCheckOuterLoop 		# If o counter > 0, not a win on that row
+				bne $t4, $s4, UpdatePlayerRowCheckOuterLoop 	# if x counter != n - 1 then not a win
+
+PlayerWinMoveBlock:
+				la 	$t5, BOARD 		# load board to t5
+				li 	$t3, 0 			# reset t3 to 0 for computation of offset position
+
+				add $t3, $t3, $s1   # t3 = outer loop i (Row where win is)
+				mul $t3, $t3, $a1   # t3 * n or Col number
+				mul $t3, $t3, $t2   # t3 * 4 for offset in memory of row
+
+				add $t5, $t5, $t3 	# t5 = first element of winning row
+				
+PlayerWinBlockLoop:
+				lw 	$t3, 0($t5)
+				bne $t3, $0, updatePlayerWinBlockLoop
+
+				sw 	$t0, 0($t5)
+
+				j loopreturn
+
+
+updatePlayerWinBlockLoop:
+				addi $t5, 4
+				j PlayerWinBlockLoop
+
+UpdatePlayerRowCheckOuterLoop:
+				li 	$t3, 0 			# Counter for O reset
+				li 	$t4, 0  		# Counter for X reset
+				addi $s1, 1 		# Update i by 1
+				li 	$s2, 0 			# reset j (inner loop) to 0
+				j PlayerRowCheckOuterLoop
 
 #------------------------------------------------------------------------
 # Functions to get user input from the user
@@ -436,6 +524,10 @@ ComputerAiWinMoveDiagRightLoop:
 #------------------------------------------------------------------------
 
 getUserInput:
+			li $v0, 4
+			la $a0, NEWLINE
+			syscall
+			
 			li $v0, 4
 			la $a0, rowinput
 			syscall
@@ -487,7 +579,7 @@ validmove:
 			seq $v1, $t2, $0
 			beq $v1, $0, getUserInput
 
-			li  $t2, 1 			# t2 = 2 or 'X'
+			li  $t2, 2 			# t2 = 2 or 'X'
 			sw  $t2, 0($t7)
 
 			jr 	$ra
