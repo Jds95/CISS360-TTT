@@ -609,8 +609,8 @@ updateXCounterColPlayer:
 # Functions to perform Player Col block check
 #------------------------------------------------------------------------
 CheckPlayerColWin:
-				bgt $t3, $0, UpdateComputerAiColCheckOuterLoop 		# If o counter > 0, not a win on that row
-				bne $t4, $s4, UpdateComputerAiColCheckOuterLoop 	# if x counter != n - 1 then not a win
+				bgt $t3, $0, UpdatePlayerColCheckOuterLoop 		# If o counter > 0, not a win on that row
+				bne $t4, $s4, UpdatePlayerColCheckOuterLoop 	# if x counter != n - 1 then not a win
 
 PlayerWinMoveColBlock:
 				la 	$t5, BOARD 		# load board to t5
@@ -882,7 +882,7 @@ PlayerWinRowCheckInnerLoop:
 				lw 	$s3, 0($s0) 	# s3 = first element of the row/cycle through
 				beq $s3, $t1, updateXCounterPlayerWin
 
-				j loopreturn
+				j UpdatePlayerWinRowCheckOuterLoop
 
 
 updateXCounterPlayerWin: 
@@ -903,6 +903,13 @@ UpdatePlayerWinRowCheckOuterLoop:
 				li 	$t4, 0  		# Counter for X reset
 				addi $s1, 1 		# Update i by 1
 				li 	$s2, 0 			# reset j (inner loop) to 0
+
+				la 	 $s0, BOARD 	# Load board to start
+				move $t5, $a1  		# t5 = n
+				mul  $t5, $t5, $s1  # t5 = n * i offset for row
+				mul  $t5, $t5, $t2  # t5 = 4(n * i)
+
+				add $s0, $s0, $t5
 				j PlayerWinRowCheckOuterLoop
 
 #------------------------------------------------------------------------
@@ -926,7 +933,7 @@ PlayerWinColCheckInnerLoop:
 				lw 	$s3, 0($s0) 	# s3 = first element of the col/cycle through
 				beq $s3, $t1, updateXCounterColPlayerWin
 
-				j loopreturn
+				j UpdatePlayerWinColCheckOuterLoop
 
 updateXCounterColPlayerWin: 
 				addi $t4, 1 		# update X counter
