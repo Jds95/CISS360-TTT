@@ -62,15 +62,18 @@ Computerfirstmove:
 			sw 	$t1, 0($t7)
 
 
-TicTacToeGameLoop: 
+TicTacToeGameLoop:
+
 			li $v0, 4
 			la $a0, NEWLINE
 			syscall
 
-			jal printBoard
-			jal printBotRow
-			jal GameDrawCheck
+			jal printBoard 				# Print board before input/After ai move
+			jal printBotRow 			# Print bottom of board row
+			jal GameDrawCheck   		# Check if game tied
 			jal getUserInput 			# Get user input for row/col
+			jal printBoard 				# Print board before input/After ai move
+			jal printBotRow 			# Print bottom of board row
 			jal GameDrawCheck 			# Check if game tied
 			jal PlayerWinRowCheck 		# Check if player won on any rows
 			jal PlayerWinColCheck 		# Check if player won on any cols
@@ -78,12 +81,12 @@ TicTacToeGameLoop:
 			jal PlayerWinCheckRightDiag # Check if player won on R Diag
 			jal ComputerAiWinMoveCheckRow  # Check to see if computer has winning move row
 			jal ComputerAiWinMoveCheckCol  # Check to see if computer has winning move col
-			jal ComputerAiWinMoveCheckLeftDiag # Check to see if right diag win
-			jal ComputerAiWinMoveCheckRightDiag # Check to see if left diag win
-			jal PlayerWinMoveCheckRow 		# Check to see if Ai needs to block player win move on row
-			jal PlayerWinMoveCheckCol  		# Check to see if Ai needs to block player win move on col
-			jal PlayerWinMoveCheckLeftDiag  # Check to see if Ai needs to block player win move on left diag
-			jal PlayerWinMoveCheckRightDiag # Check to see if Ai needs to block player win move on right diag
+			jal ComputerAiWinMoveCheckLeftDiag # Check to see if computer has left diag win
+			jal ComputerAiWinMoveCheckRightDiag # Check to see if computer has right diag win
+			jal ComputerBlockRowCheck 		# Check to see if Ai needs to block player win move on row
+			jal ComputerBlockColCheck  		# Check to see if Ai needs to block player win move on col
+			jal ComputerBlockLDiagCheck  	# Check to see if Ai needs to block player win move on left diag
+			jal ComputerBlockRDiagCheck 	# Check to see if Ai needs to block player win move on right diag
 			jal MakeAiMove 					# If Ai didn't block a move, play at first int openning
 
 			j TicTacToeGameLoop
@@ -164,6 +167,20 @@ ComputerAiWinLoop:
 				bne $t3, $0, updateAiWinLoop
 
 				sw 	$t0, 0($t5)
+
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
 
 				j DisplayComputerWin
 
@@ -270,6 +287,19 @@ ComputerAiWinLoopCol:
 				bne $t3, $0, updateAiWinLoopCol
 
 				sw 	$t0, 0($t5)
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
 
 				j DisplayComputerWin
 
@@ -462,9 +492,9 @@ ComputerAiWinMoveDiagRightLoop:
 # s3 = loading words
 # s4 = n - 1, amount of O's needed for win row
 #--------------------------------------------------------------------------
-PlayerWinMoveCheckRow:
+ComputerBlockRowCheck:
 
-PlayerRowCheck:
+ComputerBlockPlayerRowCheck:
 				li 	$t0, 1 			# t0 = 1 or "O"
 				li 	$t1, 2  		# t1 = 2 or "X"
 				li 	$t2, 4 			# t2 = 4 for multiply
@@ -476,9 +506,9 @@ PlayerRowCheck:
 				li 	$s4, 0
 				addi $s4, $a1, -1 	# s4 = n - 1
 
-PlayerRowCheckOuterLoop:
+ComputerBlockPlayerRowCheckOuterLoop:
 				beq $s1, $a1, loopreturn
-PlayerRowCheckInnerLoop:
+ComputerBlockPlayerRowCheckInnerLoop:
 				beq $s2, $a1, CheckPlayerRowWin # if s2/j = n, check if it's possible to win
 				lw 	$s3, 0($s0) 	# s3 = first element of the row/cycle through
 				beq $s3, $t0, updateOcounterPlayer
@@ -486,29 +516,29 @@ PlayerRowCheckInnerLoop:
 
 				addi $s0, 4 		# If spot is space, update to next spot
 				addi $s2, 1 		# update j 
-				j PlayerRowCheckInnerLoop
+				j ComputerBlockPlayerRowCheckInnerLoop
 
 
 updateOcounterPlayer:
 				addi $t3, 1 		# update O counter 
 				addi $s0, 4 		# Update memory to next int
 				addi $s2, 1 		# update j 
-				j PlayerRowCheckInnerLoop
+				j ComputerBlockPlayerRowCheckInnerLoop
 
 updateXCounterPlayer: 
 				addi $t4, 1 		# update X counter
 				addi $s0, 4 		# update mememory to next int
 				addi $s2, 1 		# update j 
-				j PlayerRowCheckInnerLoop
+				j ComputerBlockPlayerRowCheckInnerLoop
 
 #------------------------------------------------------------------------
 # Functions to Check if player has any winning rows, block it
 #------------------------------------------------------------------------
 CheckPlayerRowWin:
-				bgt $t3, $0, UpdatePlayerRowCheckOuterLoop 		# If o counter > 0, not a win on that row
-				bne $t4, $s4, UpdatePlayerRowCheckOuterLoop 	# if x counter != n - 1 then not a win
+				bgt $t3, $0, UpdateComputerBlockPlayerRowCheckOuterLoop 	# If o counter > 0, not a win on that row
+				bne $t4, $s4, UpdateComputerBlockPlayerRowCheckOuterLoop 	# if x counter != n - 1 then not a win
 
-PlayerWinMoveBlock:
+ComputerBlockPlayerWinMove:
 				la 	$t5, BOARD 		# load board to t5
 				li 	$t3, 0 			# reset t3 to 0 for computation of offset position
 
@@ -518,25 +548,37 @@ PlayerWinMoveBlock:
 
 				add $t5, $t5, $t3 	# t5 = first element of winning row
 				
-PlayerWinBlockLoop:
+ComputerBlockPlayerWinRowBlockLoop:
 				lw 	$t3, 0($t5)
-				bne $t3, $0, updatePlayerWinBlockLoop
+				bne $t3, $0, updateComputerBlockPlayerWinRowBlockLoop
 
 				sw 	$t0, 0($t5) 	# Block Move
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
 
 				j TicTacToeGameLoop # return to game loop
 
 
-updatePlayerWinBlockLoop:
+updateComputerBlockPlayerWinRowBlockLoop:
 				addi $t5, 4
-				j PlayerWinBlockLoop
+				j ComputerBlockPlayerWinRowBlockLoop
 
-UpdatePlayerRowCheckOuterLoop:
+UpdateComputerBlockPlayerRowCheckOuterLoop:
 				li 	$t3, 0 			# Counter for O reset
 				li 	$t4, 0  		# Counter for X reset
 				addi $s1, 1 		# Update i by 1
 				li 	$s2, 0 			# reset j (inner loop) to 0
-				j PlayerRowCheckOuterLoop
+				j ComputerBlockPlayerRowCheckOuterLoop
 
 #------------------------------------------------------------------------
 # Function to check if Player has winning column, then block
@@ -554,9 +596,9 @@ UpdatePlayerRowCheckOuterLoop:
 # s4 = n - 1, amount of O's needed for win row
 # s7 = variable offset for i'th row in winning loop 
 #------------------------------------------------------------------------
-PlayerWinMoveCheckCol:
+ComputerBlockColCheck:
 
-PlayerColCheck:
+ComputerBlockPlayerColCheck:
 				li 	$t0, 1 			# t0 = 1 or "O"
 				li 	$t1, 2  		# t1 = 2 or "X"
 				li 	$t2, 4 			# t2 = 4 for multiply
@@ -568,9 +610,9 @@ PlayerColCheck:
 				li 	$s4, 0
 				addi $s4, $a1, -1 	# s4 = n - 1
 
-PlayerColCheckOuterLoop:
+ComputerBlockPlayerColCheckOuterLoop:
 				beq $s1, $a1, loopreturn
-PlayerColCheckInnerLoop:
+ComputerBlockPlayerColCheckInnerLoop:
 				beq $s2, $a1, CheckPlayerColWin 	# if s2/j = n, check if it's possible to win
 				lw 	$s3, 0($s0) 	# s3 = first element of the col/cycle through
 				beq $s3, $t0, updateOcounterColPlayer
@@ -582,7 +624,7 @@ PlayerColCheckInnerLoop:
 				add $s0, $s0, $t5 	# If spot is space, update to next spot
 
 				addi $s2, 1 		# update j 
-				j PlayerColCheckInnerLoop
+				j ComputerBlockPlayerColCheckInnerLoop
 
 
 updateOcounterColPlayer:
@@ -593,7 +635,7 @@ updateOcounterColPlayer:
 				add $s0, $s0, $t5 	# If spot is space, update to next spot
 		
 				addi $s2, 1 		# update j 
-				j PlayerColCheckInnerLoop
+				j ComputerBlockPlayerColCheckInnerLoop
 
 updateXCounterColPlayer: 
 				addi $t4, 1 		# update X counter
@@ -603,16 +645,16 @@ updateXCounterColPlayer:
 				add $s0, $s0, $t5 	# If spot is space, update to next spot
 			
 				addi $s2, 1 		# update j 
-				j PlayerColCheckInnerLoop
+				j ComputerBlockPlayerColCheckInnerLoop
 
 #------------------------------------------------------------------------
 # Functions to perform Player Col block check
 #------------------------------------------------------------------------
 CheckPlayerColWin:
-				bgt $t3, $0, UpdatePlayerColCheckOuterLoop 		# If o counter > 0, not a win on that row
-				bne $t4, $s4, UpdatePlayerColCheckOuterLoop 	# if x counter != n - 1 then not a win
+				bgt $t3, $0, UpdateComputerBlockPlayerColCheckOuterLoop 		# If o counter > 0, not a win on that row
+				bne $t4, $s4, UpdateComputerBlockPlayerColCheckOuterLoop 	# if x counter != n - 1 then not a win
 
-PlayerWinMoveColBlock:
+ComputerBlockPlayerWinMoveCol:
 				la 	$t5, BOARD 		# load board to t5
 				li 	$t3, 0 			# reset t3 to 0 for computation of offset position
 
@@ -620,22 +662,36 @@ PlayerWinMoveColBlock:
 
 				add $t5, $t5, $s1 	# t5 = first element of winning col
 				
-PlayerWinLoopColBlock:
+ComputerBlockPlayerWinLoopCol:
 				lw 	$t3, 0($t5)
-				bne $t3, $0, updatePlayerWinLoopColBlock
+				bne $t3, $0, updateComputerBlockPlayerWinLoopCol
 
 				sw 	$t0, 0($t5) 	# Block Move
+
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
 
 				j TicTacToeGameLoop # return to game loop
 
 
-updatePlayerWinLoopColBlock:
+updateComputerBlockPlayerWinLoopCol:
 				li 	$t6, 0 			# t6 = offset to next column member
 				mul $t6, $a1, $t2 	# t6 = Column * 4
 				add $t5, $t5, $t6 	# t5 = offset by t6 to next column member
-				j PlayerWinLoopColBlock
+				j ComputerBlockPlayerWinLoopCol
 
-UpdatePlayerColCheckOuterLoop:
+UpdateComputerBlockPlayerColCheckOuterLoop:
 				li 	$t3, 0 			# Counter for O reset
 				li 	$t4, 0  		# Counter for X reset
 				addi $s1, 1 		# Update i by 1
@@ -647,7 +703,7 @@ UpdatePlayerColCheckOuterLoop:
 
 				add $s0, $s0, $s7 	# Set s0 to point to first object in column
 
-				j PlayerColCheckOuterLoop
+				j ComputerBlockPlayerColCheckOuterLoop
 
 #------------------------------------------------------------------------
 # Functions to check if Player has winning move left diag, then block
@@ -662,9 +718,9 @@ UpdatePlayerColCheckOuterLoop:
 # s4 = n - 1
 #------------------------------------------------------------------------
 
-PlayerWinMoveCheckLeftDiag:
+ComputerBlockLDiagCheck:
 
-PlayerDiagLeftCheck:
+ComputerBlockPlayerDiagLeftCheck:
 				li 	$t0, 1 			# t0 = 1 or "O"
 				li 	$t1, 2  		# t1 = 2 or "X"
 				li 	$t2, 4 			# t2 = 4 for multiply
@@ -676,7 +732,7 @@ PlayerDiagLeftCheck:
 				li 	$s4, 0
 				addi $s4, $a1, -1 	# s4 = n - 1
 
-PlayerDiagLeftLoop:
+ComputerBlockPlayerDiagLeftLoop:
 				beq $s1, $a1, CheckPlayerDiagLeftWin
 				lw 	$s3, 0($s0) 	# s3 = first element of the diag/cycle through
 				beq $s3, $t0, updateOcounterDiagLeftPlayer
@@ -689,7 +745,7 @@ PlayerDiagLeftLoop:
 				add $s0, $s0, $s3 	# s3 offset to next diag int 
 
 				addi $s1, 1 		# Update i for for-loop
-				j PlayerDiagLeftLoop
+				j ComputerBlockPlayerDiagLeftLoop
 
 
 updateXCounterDiagLeftPlayer:
@@ -701,7 +757,7 @@ updateXCounterDiagLeftPlayer:
 				add $s0, $s0, $s3 	# s3 offset to next diag int 
 				addi $s1, 1 		# Update i for for-loop
 
-				j PlayerDiagLeftLoop
+				j ComputerBlockPlayerDiagLeftLoop
 updateOcounterDiagLeftPlayer:
 				addi $t3, 1 		# update O counter 	
 			 	move $s3, $a1 		# s3 = column size
@@ -711,20 +767,34 @@ updateOcounterDiagLeftPlayer:
 				add $s0, $s0, $s3 	# s3 offset to next diag int 
 				addi $s1, 1 		# Update i for for-loop
 
-				j PlayerDiagLeftLoop
+				j ComputerBlockPlayerDiagLeftLoop
 
 CheckPlayerDiagLeftWin:
 				bgt $t3, $0, loopreturn 		# If o counter > 0, not a win on that row
 				bne $t4, $s4, loopreturn		# if x counter != n - 1 then not a win
 
-PlayerWinMoveDiagLeftBlock:
+ComputerBlockPlayerWinMoveDiagLeft:
 				la 	$t5, BOARD 		# load board to t5
 
-PlayerWinMoveDiagLeftLoopBlock:
+ComputerBlockPlayerWinningMoveDiagLeftLoop:
 				lw 	$t3, 0($t5)  	# Load int in diagonal
 				bne $t3, $0, updatePlayerWinLoopDiagLeftBlock
 
 				sw 	$t0, 0($t5) 	# Block Move
+
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
 
 				j TicTacToeGameLoop # return to game loop
 
@@ -735,7 +805,7 @@ updatePlayerWinLoopDiagLeftBlock:
 
 				add $t5, $t5, $s3 	# t5 moves memory to next int in diag
 
-				j PlayerWinMoveDiagLeftLoopBlock
+				j ComputerBlockPlayerWinningMoveDiagLeftLoop
 
 #------------------------------------------------------------------------
 # Functions to check if Player has winning Right Diag move, block it
@@ -750,9 +820,9 @@ updatePlayerWinLoopDiagLeftBlock:
 # s4 = n - 1
 #------------------------------------------------------------------------
 
-PlayerWinMoveCheckRightDiag:
+ComputerBlockRDiagCheck:
 
-PlayerDiagRightCheck:
+ComputerBlockPlayerDiagRightCheck:
 				li 	$t0, 1 			# t0 = 1 or "O"
 				li 	$t1, 2  		# t1 = 2 or "X"
 				li 	$t2, 4 			# t2 = 4 for multiply
@@ -762,7 +832,7 @@ PlayerDiagRightCheck:
 				li 	$s1, 0 			# s1 = i for loop
 				li 	$s4, 0
 				addi $s4, $a1, -1 	# s4 = n - 1
-PlayerDiagRightLoop:
+ComputerBlockPlayerDiagRightLoop:
 				beq $s1, $a1, CheckPlayerDiagRightWin
 				move $s3, $a1 		# s3 = column size / n
 				addi $s3, -1 		# s3 = column size - 1/n - 1 for next int for diag
@@ -774,24 +844,24 @@ PlayerDiagRightLoop:
 				beq $s3, $t1, updateXCounterDiagRightPlayer
 
 				addi $s1, 1 		# Update i for for-loop
-				j PlayerDiagRightLoop
+				j ComputerBlockPlayerDiagRightLoop
 
 
 updateXCounterDiagRightPlayer:
 				addi $t4, 1 		# update O counter 	
-				j PlayerDiagRightLoop
+				j ComputerBlockPlayerDiagRightLoop
 updateOcounterDiagRightPlayer:
 				addi $t3, 1 		# update O counter 	
-				j PlayerDiagRightLoop
+				j ComputerBlockPlayerDiagRightLoop
 
 CheckPlayerDiagRightWin:
 				bgt $t3, $0, loopreturn 		# If o counter > 0, not a win on that row
 				bne $t4, $s4, loopreturn		# if x counter != n - 1 then not a win
 
-PlayerWinMoveDiagRightBlock:
+ComputerBlockPlayerWinMoveDiagRight:
 				la 	$t5, BOARD 		# load board to t5
 
-PlayerWinMoveDiagRightLoopBlock:
+ComputerBlockPlayerWinningMoveDiagRightLoop:
 				move $s3, $a1 		# s3 = column size / n
 				addi $s3, -1 		# s3 = column size - 1/n - 1 for next int for diag
 				mul $s3, $s3, $t2 	# s3 = offset for next memory address in diag
@@ -801,6 +871,19 @@ PlayerWinMoveDiagRightLoopBlock:
 				bne $t3, $0, PlayerWinMoveDiagRightLoopBlock
 
 				sw 	$t0, 0($t5) 	# Block move 
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
 
 				j TicTacToeGameLoop # return back to game
 
@@ -821,6 +904,14 @@ MakeAiMoveLoop:
 				bne $s1, $0, updateMakeAiMoveLoop 	# If it isn't space, update to next int
 
 				sw 	$t2, 0($s0)  	# Load O into board
+
+				li 	$v0, 4
+				la 	$a0, NEWLINE
+				syscall
+
+				li 	$v0, 4
+				la 	$a0, computermove
+				syscall
 
 				j TicTacToeGameLoop 
 
@@ -1269,9 +1360,6 @@ gameLoopreturn:
 			jr $ra
 
 DisplayPlayerWin:
-			jal printBoard
-			jal printBotRow
-
 			li 	$v0, 4
 			la 	$a0, NEWLINE
 			syscall
@@ -1280,13 +1368,34 @@ DisplayPlayerWin:
 			la 	$a0, playerwon
 			syscall
 
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
+
 			li $v0, 10
 			syscall
 
 
 DisplayComputerWin:
+
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
+
+			li 	$v0, 4
+			la 	$a0, computermove
+			syscall
+
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
+
 			jal printBoard
 			jal printBotRow
+
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
 
 			li 	$v0, 4
 			la 	$a0, NEWLINE
@@ -1296,10 +1405,17 @@ DisplayComputerWin:
 			la 	$a0, computerwon
 			syscall
 
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
+
 			li $v0, 10
 			syscall
 
 DisplayGameDraw:
+			li 	$v0, 4
+			la 	$a0, NEWLINE
+			syscall
 
 			li 	$v0, 4
 			la 	$a0, NEWLINE
@@ -1309,12 +1425,10 @@ DisplayGameDraw:
 			la 	$a0, gamedraw
 			syscall
 
-			li $v0, 10
+			li 	$v0, 4
+			la 	$a0, NEWLINE
 			syscall
-#-------------------------------------------------------------------------
-# Exit the game
-#-------------------------------------------------------------------------
-exit:
+
 			li $v0, 10
 			syscall
 
@@ -1332,6 +1446,7 @@ space:   .asciiz " "
 charX:   .asciiz "X"
 charO:   .asciiz "O"
 first:   .asciiz "I'll go first."
-computerwon: .asciiz "The Computer has won!"
-gamedraw: .asciiz "You Tied the Computer!"
-playerwon: .asciiz "You Beat the Computer!"
+computerwon: .asciiz "I'm the winner!"
+gamedraw: .asciiz "We have a draw!"
+playerwon: .asciiz "You are the winner!"
+computermove: .asciiz "\nComputer makes his move!"
