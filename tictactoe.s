@@ -66,9 +66,12 @@ TicTacToeGameLoop:
 			li $v0, 4
 			la $a0, NEWLINE
 			syscall
+
 			jal printBoard
 			jal printBotRow
+			jal GameDrawCheck
 			jal getUserInput 			# Get user input for row/col
+			jal GameDrawCheck 			# Check if game tied
 			jal ComputerAiWinMoveCheckRow  # Check to see if computer has winning move row
 			jal ComputerAiWinMoveCheckCol  # Check to see if computer has winning move col
 			jal ComputerAiWinMoveCheckLeftDiag # Check to see if right diag win
@@ -805,11 +808,10 @@ MakeAiMove:
 				li $t0, 0  			# t0 counter to go through all items
 				move $t1, $a1  		# t1 = n
 				mul  $t1, $t1, $t1  # t1 = total number of cells for ttt board
-				addi $t1, 1 		# t1 = 1 more/draw check amount
 				li 	$t2, 1
 
 MakeAiMoveLoop:
-				beq $t0, $t1, displayGameDraw
+				beq $t0, $t1, TicTacToeGameLoop
 
 				lw 	$s1, 0($s0) 	# Load first int of board
 				bne $s1, $0, updateMakeAiMoveLoop 	# If it isn't space, update to next int
@@ -824,7 +826,35 @@ updateMakeAiMoveLoop:
 				addi $s0, 4
 
 				j MakeAiMoveLoop
-	
+
+#------------------------------------------------------------------------
+# Function to check if game ended in a draw
+# Registers used
+# s0 = board
+# s1 = load words
+# t0 = counter to go through entire board
+# t1 = number of cells 
+#------------------------------------------------------------------------
+GameDrawCheck:			
+				la $s0, BOARD 		# Board address put into s0
+				li $t0, 0  			# t0 counter to go through all items
+				move $t1, $a1  		# t1 = n
+				mul  $t1, $t1, $t1  # t1 = total number of cells for ttt board
+				li $t2, 0 			# t2 = number of spaces
+DrawCheckLoop:
+				beq $t0, $t1, DrawCheckResults
+				lw 	$s1, 0($s0) 	# s1 = int in storage
+				beq $s1, $0, returnToGame
+				
+				addi $t0, 1
+				addi $s0, 4
+				j DrawCheckLoop				
+
+DrawCheckResults:
+				j displayGameDraw
+
+returnToGame:
+				jr $ra
 #------------------------------------------------------------------------
 # Functions to get user input from the user
 # Registers used $a2, $a3 for row/col
@@ -841,7 +871,11 @@ getUserInput:
 
 			li $v0, 5
 			syscall
-			move $a2, $v0 		# a2 = row 
+			move $a2, $v0 		# a2 = row
+
+			li $v0, 1
+			move $a0, $a2 		# Print row 
+			syscall 
 
 			li $v0, 4
 			la $a0, NEWLINE
@@ -854,6 +888,11 @@ getUserInput:
 			li $v0, 5
 			syscall
 			move $a3, $v0 		# a3 = col
+
+			li $v0, 1
+			move $a0, $a3 		# Print col
+			syscall 
+
 
 			li $v0, 4
 			la $a0, NEWLINE
@@ -1060,9 +1099,6 @@ displayGameDraw:
 			li 	$v0, 4
 			la 	$a0, gamedraw
 			syscall
-
-			jal printBoard
-			jal printBotRow
 
 			li $v0, 10
 			syscall
