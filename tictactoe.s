@@ -1229,7 +1229,8 @@ setupboard: la $t0, BOARD 	# t0 loads the address of board
 			sw $ra, 0($sp) 	# Store return address into the stack
 
 
-setuploop:  beq $t1, 400, setupdone
+setuploop:  li 	$k0, 400
+			beq $t1, $k0, setupdone
 			sw 	$0, 0($t0)
 
 			addi $t1, $t1, 4 	# t1 +=4 for beq when hit end of board data storage
@@ -1311,7 +1312,7 @@ printcolLoop:
 			
 printspacecheck:
 			lw 	$t6, 0($t3)		# t6 stores 0, 1, 2 from board
-			seq $t4, $t6, 0
+			seq $t4, $t6, $0
 			beq $t4, $0, printOcheck
 
 			li $v0, 4
