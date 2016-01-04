@@ -1174,12 +1174,9 @@ getUserInput:
 
 			blt $a2, $0, getUserInput 	# No negative Row
 			blt $a3, $0, getUserInput 	# No negative col
-			beq $a2, $0, getUserInput
-			beq $a3, $0, getUserInput
 			move $t0, $a1 				# t0 = n
 			bgt $a2, $t0, getUserInput 	# No row > row size
 			bgt $a3, $t0, getUserInput  # No col > col size
-
 
 			li $v0, 4
 			la $a0, NEWLINE
